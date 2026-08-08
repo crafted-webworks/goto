@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Access Now</title>
+
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #333;
+    }
+
+    .card {
+        background: #fff;
+        padding: 30px 40px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        width: 300px;
+    }
+
+    .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 15px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        100% { transform: rotate(360deg); }
+    }
+
+    h2 {
+        margin: 10px 0;
+        font-size: 20px;
+    }
+
+    p {
+        font-size: 14px;
+        color: #666;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <div class="loader"></div>
+    <h2 id="title">Wait...</h2>
+    <p id="desc">Please wait while we take you there.</p>
+</div>
+
+<script>
+    const routes = {
+        practiceknowlege: "https://ar01h.github.io/tools/InBuiltQuizPractice/QuizTaker/index.html",
+        advaithhomes: "http://projects.akhileshravuri.online/advaith_homes",
+        thecanehouse: "https://projects.akhileshravuri.online/thecanehouse",
+        "advaithhomes-co-uk": "https://advaithhomes.co.uk",
+        "thecanehouse-co-uk": "http://thecanehouse.co.uk",
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get("to");
+
+    const title = document.getElementById("title");
+    const desc = document.getElementById("desc");
+
+    if (target && routes[target]) {
+        setTimeout(() => {
+            window.location.href = routes[target];
+        }, 1500);
+    } else {
+        title.innerText = "Invalid link";
+        desc.innerText = "Redirect failed. Please check the URL.";
+    }
+</script>
+
+</body>
+</html>
