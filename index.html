@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Route</title>
+
+<!-- If the link has force=true, hide the page immediately so nothing flashes before the redirect. -->
+<script>
+  (function () {
+    var q = window.location.search;
+    if (/[?&]to=/.test(q) && /[?&]force=(true|1|yes)(&|$)/i.test(q)) {
+      document.documentElement.style.visibility = "hidden";
+    }
+  })();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -170,6 +181,9 @@
     margin: 0 0 28px;
   }
 
+  /* empty subtitle takes no space (it's only filled when a route has no url) */
+  .router-card .sub:empty { display: none; }
+
   .path-track {
     position: relative;
     height: 2px;
@@ -178,13 +192,14 @@
     margin: 34px 0 30px;
   }
 
+  /* animation length follows REDIRECT_DELAY (set from JS as --redirect-ms) */
   .path-fill {
     position: absolute;
     inset: 0;
     width: 0%;
     background: linear-gradient(90deg, var(--accent-dim), var(--accent));
     border-radius: 2px;
-    animation: fillTrack 1.5s cubic-bezier(.4,0,.2,1) forwards;
+    animation: fillTrack var(--redirect-ms, 1500ms) cubic-bezier(.4,0,.2,1) forwards;
   }
 
   .path-node {
@@ -197,7 +212,7 @@
     box-shadow: 0 0 12px 2px rgba(124,158,255,0.6);
     transform: translate(-50%, -50%);
     left: 0%;
-    animation: travelNode 1.5s cubic-bezier(.4,0,.2,1) forwards;
+    animation: travelNode var(--redirect-ms, 1500ms) cubic-bezier(.4,0,.2,1) forwards;
   }
 
   .path-node::after {
@@ -216,8 +231,9 @@
     100% { transform: scale(1.8); opacity: 0; }
   }
 
+  /* destination row hidden on purpose, so the target URL isn't shown on the routing screen */
   .endpoints {
-    display: flex;
+    display: none;
     justify-content: space-between;
     font-family: var(--font-mono);
     font-size: 11px;
@@ -707,10 +723,9 @@
 
 <!-- REDIRECT VIEW -->
 <div class="scene" id="redirectScene" style="display:none;">
-  <div class="eyebrow"><span class="dot"></span> ROUTING</div>
   <div class="router-card">
     <h1>Resolving your link</h1>
-    <p class="sub">Handing off to the destination below.</p>
+    <p class="sub"></p>
 
     <div class="path-track">
       <div class="path-fill"></div>
@@ -729,6 +744,15 @@
     <div class="manual-link">
       Not redirected automatically? <a id="manualHref" href="#">Continue manually</a>
     </div>
+  </div>
+</div>
+
+<!-- NOT FOUND VIEW -->
+<div class="scene" id="notFoundScene" style="display:none;">
+  <div class="router-card" style="text-align:center;">
+    <h1>No Data Found</h1>
+    <p class="sub" id="notFoundMsg"></p>
+    <a class="go-btn" id="homeBtn" href="./" style="display:inline-block;">Go Home</a>
   </div>
 </div>
 
@@ -768,6 +792,12 @@
     });
   })();
 
+  /* =====================================================================
+     ROUTES — add new projects here (see README.md).
+     Required: name, url, status
+     Optional: type, show, logo, accentColor, desc, about, tools, tags,
+               caseStudy, direct, hold
+     ===================================================================== */
   const routes = {
     practiceknowlege: {
       name: "Quiz Practice Tool",
@@ -781,11 +811,11 @@
     },
     advaithhomes: {
       name: "Advaith Homes",
-      url: "http://projects.akhileshravuri.online/advaith_homes",
+      url: "https://projects.akhileshravuri.online/advaith_homes",
       status: "sample",
       type: "Business Page",
       show: true,
-      logo: "http://advaithhomes.co.uk/wp-content/themes/advaithhomes_new/assets/images/logos/logo_with_text.png?v=22",
+      logo: "https://advaithhomes.co.uk/wp-content/themes/advaithhomes_new/assets/images/logos/logo_with_text.png?v=22",
       accentColor: "",
       desc: "Form / demo design.",
       about: "A sample design build for Advaith Homes, used to try out layout and styling directions.",
@@ -820,7 +850,7 @@
       status: "live",
       type: "Business Page",
       show: true,
-      logo: "http://advaithhomes.co.uk/wp-content/themes/advaithhomes_new/assets/images/logos/logo_with_text.png?v=22",
+      logo: "https://advaithhomes.co.uk/wp-content/themes/advaithhomes_new/assets/images/logos/logo_with_text.png?v=22",
       accentColor: "#2563eb",
       desc: "Live client site — UK project.",
       about: "A UK property information and buyer-support platform. It offers independent guides, checklists, and calculators (stamp duty, deposit savings, affordability) for buying, selling, and moving, plus buyer-side services — property search, negotiation, and transaction coordination through to completion. Built for first-time buyers, home movers, landlords, and expats.",
@@ -829,7 +859,7 @@
     },
     "thecanehouse-co-uk": {
       name: "The Cane House",
-      url: "http://thecanehouse.co.uk",
+      url: "https://thecanehouse.co.uk",
       status: "upcoming",
       type: "Business Page",
       show: true,
@@ -868,11 +898,21 @@
     return !!(route && typeof route.url === "string" && route.url.trim().length > 0);
   }
 
-  const REDIRECT_DELAY = 1500;
+  const REDIRECT_DELAY = 1500; // ms the routing screen is shown (not used when force=true)
   let activeTag = null;
 
+  // Keeps the progress animation in sync with REDIRECT_DELAY.
+  document.documentElement.style.setProperty("--redirect-ms", REDIRECT_DELAY + "ms");
+
   function shortUrl(u) {
-    return u.replace(/^https?:\/\//, "");
+    return (u || "").replace(/^https?:\/\//, "");
+  }
+
+  // Case-insensitive route lookup: ?to=Projects works the same as ?to=projects.
+  function findKey(raw) {
+    if (!raw) return null;
+    const wanted = raw.trim().toLowerCase();
+    return Object.keys(routes).find(k => k.toLowerCase() === wanted) || null;
   }
 
   function showRedirect(key) {
@@ -904,7 +944,8 @@
     }
 
     setTimeout(() => {
-      window.location.href = route.url;
+      // replace() keeps this page out of history, so Back doesn't loop.
+      window.location.replace(route.url);
     }, REDIRECT_DELAY);
   }
 
@@ -1054,7 +1095,7 @@
               ${iconHtml(r, i)}
               <span class="row-main">
                 <div class="row-name">${r.name}</div>
-                <div class="row-url">${shortUrl(r.url)}</div>
+                ${canGo ? `<div class="row-url">${shortUrl(r.url)}</div>` : ""}
               </span>
             </div>
             <div class="row-bottom">
@@ -1129,12 +1170,16 @@
     const headP = document.querySelector(".directory-head p");
     const foot = document.getElementById("invalidNote");
 
+    // If someone opened ?to=something-unknown, tell them (textContent = safe).
+    foot.textContent = invalidKey
+      ? `No route named "${invalidKey}" — showing all projects.`
+      : "";
+
     if (hk) {
       document.title = routes[hk].name;
       headP.textContent = "Currently spotlighting one project.";
       renderFilterBar();
       renderTable();
-      foot.textContent = "";
       return;
     }
 
@@ -1143,16 +1188,42 @@
 
     renderFilterBar();
     renderTable();
-    foot.textContent = "";
   }
 
-  const params = new URLSearchParams(window.location.search);
-  const target = params.get("to");
+  // Unknown ?to= key: show "No Data Found". The Go Home button links to this
+  // same page without any query string, so the ?to=... part is dropped.
+  function showNotFound(key) {
+    document.getElementById("body").classList.add("centered");
+    document.getElementById("notFoundScene").style.display = "block";
+    document.getElementById("notFoundMsg").textContent = `Nothing found for "${key}".`;
+    document.getElementById("homeBtn").href = window.location.pathname;
+    document.title = "Not found";
+  }
 
-  if (target && routes[target]) {
-    showRedirect(target);
+  /* ---------------------------------------------------------------
+     ENTRY POINT
+       ?to=KEY               -> routing screen, then redirect
+       ?to=KEY&force=true    -> instant redirect, nothing shown
+       (no ?to / unknown key)-> directory of projects
+     --------------------------------------------------------------- */
+  const params = new URLSearchParams(window.location.search);
+  const rawTarget = params.get("to");
+  const targetKey = findKey(rawTarget);
+  const force = ["true", "1", "yes"].includes((params.get("force") || "").toLowerCase());
+
+  if (targetKey && force && hasUrl(routes[targetKey])) {
+    // Page stays hidden (see <head> script) while the browser leaves.
+    window.location.replace(routes[targetKey].url);
   } else {
-    showDirectory(target);
+    // Anything else needs the page visible again.
+    document.documentElement.style.visibility = "";
+    if (targetKey) {
+      showRedirect(targetKey);
+    } else if (rawTarget) {
+      showNotFound(rawTarget);   // ?to=something-unknown
+    } else {
+      showDirectory("");         // plain page, no ?to=
+    }
   }
 </script>
 </body>
