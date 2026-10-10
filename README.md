@@ -1,6 +1,11 @@
 # Goto — link router
 
-One HTML file (`index.html`). It redirects short links to your projects, or shows a directory of all projects.
+Two files, kept in the same folder:
+
+- `index.html`: the page itself (design and logic). You rarely need to touch this.
+- `data.js`: your projects list (`const routes = { ... }`). **This is the only file you edit to add or change projects.**
+
+It redirects short links to your projects, or shows a directory of all projects.
 
 ## How links work
 
@@ -9,7 +14,7 @@ One HTML file (`index.html`). It redirects short links to your projects, or show
 | `.../goto/` | Shows the project directory |
 | `.../goto/?to=projects` | Shows the "Resolving your link" screen, then redirects after 1.5s |
 | `.../goto/?to=projects&force=true` | Redirects instantly, nothing is shown |
-| `.../goto/?to=unknown` | Shows the directory with a "no route named..." note |
+| `.../goto/?to=unknown` | Shows "No Data Found" with a Go Home button (opens the directory without `?to=`) |
 
 - `projects` is the **key** of a route (see below). Keys are not case-sensitive.
 - `force=true` also accepts `1` or `yes`.
@@ -17,7 +22,7 @@ One HTML file (`index.html`). It redirects short links to your projects, or show
 
 ## Add a new project
 
-Open `index.html`, find `const routes = { ... }`, and add one block. Don't forget the comma after the previous block.
+Open `data.js` and add one block inside `const routes = { ... }`. Don't forget the comma after the previous block.
 
 ```js
 mynewproject: {
@@ -52,10 +57,11 @@ Then your link is `https://crafted-webworks.github.io/goto/?to=mynewproject`.
 
 - **Hide a project from the list but keep its link working:** add `show: false`.
 - **Turn off a project temporarily:** change `status` to `"expired"` and remove its `url`.
-- **Change the routing screen time:** edit `REDIRECT_DELAY` (milliseconds).
-- **Add a new status:** add a line in `STATUS_CONFIG`, plus matching `.status-pill.yourstatus` CSS.
+- **Change the routing screen time:** edit `REDIRECT_DELAY` (milliseconds) in `index.html`.
+- **Add a new status:** add a line in `STATUS_CONFIG` in `index.html`, plus matching `.status-pill.yourstatus` CSS.
 
 ## Notes
 
 - Redirecting depends only on `url`. A route with status `upcoming` but a `url` will still redirect, so remove the `url` if the site isn't live yet.
 - Keys should be lowercase with no spaces, e.g. `my-project`.
+- Upload `index.html` and `data.js` together. If `data.js` is missing, the page can't load your projects.
